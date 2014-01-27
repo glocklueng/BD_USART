@@ -143,12 +143,12 @@ u8  Lcd_write(u8 statu,u8 type,u8 data)
 			Big_lcd.Txinfo[4]= 0X44;
 			Big_lcd.Txinfo[5]= 0X00;
 			Big_lcd.Txinfo[6]= 0x00;
-			Big_lcd.Txinfo[7]= 0xFE;
-			rt_device_write(&Device_485,0,( const char*)Big_lcd.Txinfo,7);
+			Big_lcd.Txinfo[7]= 0x00;
+			rt_device_write(&Device_485,0,( const char*)Big_lcd.Txinfo,8);
 		break;
 	}
 	//-------------------------
-	OutPrint_HEX("write_lcd:", Big_lcd.Txinfo, Big_lcd.Txinfo[2]+3);
+	OutPrint_HEX("w_lcd_bd:", Big_lcd.Txinfo, Big_lcd.Txinfo[2]+3);
 	Big_lcd.status=LCD_IDLE;          
 	Big_lcd.TxInfolen=0; //长度清零	
 	delay_ms(5);
@@ -186,10 +186,10 @@ void  Lcd_Data_Process(void)
 	u16 data_id =0,i=0; 
 	u16 ContentLen=0;
 	u8  dwin_reg[150];
-	OutPrint_HEX("RXlcd:",Big_lcd.RxInfo,Big_lcd.RxInfo[2]+3);
+	OutPrint_HEX("RX_form_lcd:",Big_lcd.RxInfo,Big_lcd.RxInfo[2]+3);
 	//AA 55 08 83 30 00 02 1E FF FF 00               
 	//      08 ???       83  : ??  33 00 : ??   02 1E FF FF 00: ?? 
-	rt_kprintf("Big_lcd.RxInfolen--%d\r\n",Big_lcd.RxInfolen);
+	
 	if(Big_lcd.RxInfolen>=3)//是有效数据
 	{
 	    ContentLen  = Big_lcd.RxInfo[6]*2;//内容的长度
@@ -375,16 +375,16 @@ void  Lcd_Data_Process(void)
 						
 						BD1_Tx(BD1_TYPE_TXSQ,Big_lcd.TXT_content,strlen(Big_lcd.TXT_content));
 						BD_FRE.Frequency =0;//从新计数吧
-						//BD_TX.flag_send=RT_EBUSY;
+						BD_TX.flag_send=RT_EBUSY;
 					}
-					if(BD_TX.flag_send==RT_EBUSY)
+					else
 					{
 						dwlcd =1;
 						BD_TX.status = bd1_send_Artificial;
-						Lcd_write(Big_lcd.status, LCD_PAGE, 27);
-						rt_kprintf("yun xing le....2.... \r\n");
+						Lcd_write(Big_lcd.status, LCD_PAGE, 27);//等待入站
+						
 					}
-					BD_TX.flag_send=RT_EBUSY;
+					
 					
 				}
 	break;	
@@ -607,15 +607,15 @@ void  _485_RxHandler(u8 data)
 
 		break;
 		case  LARGE_LCD:
-		if(_485dev_wr>=(_485_RXstatus._485_RxLen+3))  //  AA  55  08    
+		if(_485dev_wr>=(_485_dev_rx[2]+3))  //  AA  55  08    
 		{
 			//  send msg_queue
-			_485_MsgQue_sruct.info=_485_dev_rx;
-			_485_MsgQue_sruct.len=_485dev_wr;	
+			//_485_MsgQue_sruct.info=_485_dev_rx;
+			//_485_MsgQue_sruct.len=_485dev_wr;	
 			//-------------------------- 
 			memset(Big_lcd.RxInfo,0,sizeof(Big_lcd.RxInfo));
-			memcpy(Big_lcd.RxInfo,_485_dev_rx,_485_dev_rx[2]+3); 
-			Big_lcd.RxInfolen=_485_dev_rx[2]+3;     
+			memcpy(Big_lcd.RxInfo,_485_dev_rx,(_485_dev_rx[2])+3); 
+			Big_lcd.RxInfolen=(_485_dev_rx[2]+3);     
 			//-------------------------- 
 			_485dev_wr=0;  // clear	  
 			_485_RXstatus._485_receiveflag=IDLE_485;  
@@ -1087,8 +1087,8 @@ static rt_size_t Device_485_write( rt_device_t dev, rt_off_t pos, const void* bu
 	Info_len485=(unsigned int)count;
 	
     	/* empty console output */
-		USART_ITConfig(USART2, USART_IT_RXNE, DISABLE);
-		USART_ClearFlag(USART2, USART_IT_RXNE);
+		//USART_ITConfig(USART2, USART_IT_RXNE, DISABLE);
+		//USART_ClearFlag(USART2, USART_IT_RXNE);
 	TX_485const; 
 	_485_delay_ms(1);
 		//--------  add by  nathanlnw ---------
@@ -1101,7 +1101,7 @@ static rt_size_t Device_485_write( rt_device_t dev, rt_off_t pos, const void* bu
        _485_delay_ms(5);
 	   
        RX_485const; 
-	   USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
+	   //USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
         return RT_EOK;
   }
 //FINSH_FUNCTION_EXPORT_ALIAS(Device_485_write,W_485, buzzer_onoff[1|0]); 

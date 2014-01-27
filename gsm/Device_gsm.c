@@ -515,7 +515,7 @@ u8  TTS_ACK_Error_Process(void)
 
 void TTS_play(u8 * instr)
 {
-      OutPrint_HEX("RX:",  instr, strlen((const char*)instr));
+      
       TTS_Get_Data(instr,strlen((const char*)instr));
       rt_kprintf("\r\n     ÷∂Ø”Ô“Ù≤•±®: %s\r\n",instr);
 }

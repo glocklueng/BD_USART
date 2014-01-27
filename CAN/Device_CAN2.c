@@ -838,17 +838,19 @@ void BD_Timer_out(void *  parameter)
 		//rt_kprintf("BD_FK.result=%d\r\n",BD_FK.result);
 		if(BD_FK.result==result_pending)
 		{
-			if(BD_FRE.Frequency==BD1_struct.in_freq)
+			if(BD_FRE.Frequency==(BD1_struct.in_freq-3))
 			{
 				TTS_play("北斗回复超时，请重试");
 				BD_FK.result=result_failed;
+				//发送失败了
+				dwlcd =0;//小屏发送
+				BD_TX.status = bd1_send_auto;
 			}
 			
 		}
-		if(BD_FRE.Frequency ==BD1_struct.in_freq+1)
+		if(BD_FRE.Frequency ==(BD1_struct.in_freq+1))
 		{
-			BD_FRE.Frequency =0;
-			BD_TX.flag_send=RT_EOK;
+			
 			
 		   if(ModuleStatus&Status_GPS )//如果定位就发送0200信息
 		   	{
@@ -857,7 +859,6 @@ void BD_Timer_out(void *  parameter)
 				memset(U3_Tx,0,sizeof(U3_Tx));
 				if(BD_TX.status == bd1_send_auto)//自动发送
 				{
-				    
 					BD1_Tx(BD1_TYPE_TXSQ,U3_Tx,Info_to_fill());	
 					BD_TX.flag_send=RT_EBUSY;
 					memset(U3_Tx,0,sizeof(U3_Tx));
@@ -866,9 +867,9 @@ void BD_Timer_out(void *  parameter)
 				}
 		   	}
 		   
-			if(BD_TX.status== bd1_send_Artificial)
+			if(BD_TX.status==bd1_send_Artificial)
 			{
-				if(dwlcd==0)
+				if(dwlcd==0)//小屏发送
 				{
 					BD1_Tx(BD1_TYPE_TXSQ,trans[number_txt],strlen(trans[number_txt]));//车台内置内容
 				}
@@ -877,21 +878,18 @@ void BD_Timer_out(void *  parameter)
 					BD1_Tx(BD1_TYPE_TXSQ,Big_lcd.TXT_content,strlen(Big_lcd.TXT_content));//lcd发送内容
 					Lcd_write(Big_lcd.status, LCD_PAGE, 1);
 					BD_FRE.Frequency =0;//从新计数
-					
 				}
-				//if(BD_FK.flag_send!=TXCF)
-				//{
-					dwlcd =0;
-					BD_TX.status = bd1_send_auto;
-					BD_TX.Time_consum =1;//控制小屏幕切换时间得计时
 					
+					BD_TX.Time_consum =1;//控制小屏幕切换时间得计时
 					BD_TX.flag_send=RT_EBUSY;//在发送间隔中处于忙状态
 					BD_TX.Frequency=0;//可以让其回到待机界面
 					lcd_fill(0);
 					lcd_text12(10,10,"通信申请已经发送",16,LCD_MODE_SET);
 					lcd_update_all();
-				//}
+				
 			}
+			BD_FRE.Frequency =0;
+			BD_TX.flag_send=RT_EOK;
 		}
     }
 	//rt_kprintf("时间消耗---%d\r\n",BD_TX.Time_consum);
@@ -1354,9 +1352,12 @@ void BD1_RxProcess(void)
 			 {
 			 	BD_FK.result =result_success; 
 				memset(Big_lcd.TXT_content,0,sizeof(Big_lcd.TXT_content));//发送完成清零
-				Lcd_write(Big_lcd.status,LCD_PAGE,0x26);
 				Lcd_write(Big_lcd.status,LCD_Text_clear,0);//将文字清零
-				Lcd_write(Big_lcd.status,LCD_PAGE,0x01);
+				delay_ms(10);
+				Lcd_write(Big_lcd.status,LCD_PAGE,1);
+				//发送成功了
+				dwlcd =0;//小屏发送
+				BD_TX.status = bd1_send_auto;
 				
 			 }
 			 else
